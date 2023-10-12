@@ -1,7 +1,10 @@
 const express = require('express');
 const app = express();
 const path = require('path');
+const connectToDb = require("./public/db")
 
+
+connectToDb();
 // Defina o diretório de arquivos estáticos (HTML, CSS, imagens)
 app.use(express.static(path.join(__dirname, 'public')));
 
