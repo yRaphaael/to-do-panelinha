@@ -21,7 +21,6 @@ module.exports = connectToDb;
 const { MongoClient } = require('mongodb');
 const url = 'mongodb+srv://victorcode:Vrf0911!@jalacluster.weoaxor.mongodb.net/?retryWrites=true&w=majority&appName=AtlasApp'; // URL do servidor MongoDB
 
-const connectToDb = () =>{
     const client = new MongoClient(url, { useUnifiedTopology: true });
 
 client.connect()
@@ -31,6 +30,5 @@ client.connect()
   .catch((error) => {
     console.error('Erro na conexão com o MongoDB:', error);
   });
-}
-
-module.exports = connectToDb;
+const db = client.db("db_todolist");
+module.exports = { db };

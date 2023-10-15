@@ -1,26 +1,33 @@
+
 const todoInput = document.querySelector(".todo-input");
 const todoButton = document.querySelector(".todo-button");
 const todoList = document.querySelector(".todo-list");
 const filterOption = document.querySelector(".filter-todo");
 
-document.addEventListener("DOMContentLoaded", getLocalTodos);
-todoButton.addEventListener("click", () => {
+document.addEventListener("DOMContentLoaded", () => {
+    getLocalTodos();
+});
+
+todoButton.addEventListener("click", (e) => {
+    e.preventDefault();
     const todoText = todoInput.value.trim();
     if (todoText !== "") {
         addTodoToServer(todoText);
-
     }
 });
 todoList.addEventListener("click", deleteCheck);
 filterOption.addEventListener("change", filterTodo);
 
-function createTodoElement(todoText) {
+function createTodoElement(item) {
     const todoDiv = document.createElement("div");
     todoDiv.classList.add("todo");
     const newTodo = document.createElement("li");
-    newTodo.innerText = todoText;
+    newTodo.innerText = item.todo;
     newTodo.classList.add("todo-item");
     todoDiv.appendChild(newTodo);
+    const newSpan = document.createElement("span");
+    newSpan.innerText = item._id;
+    todoDiv.setAttribute("data-id", item._id);
 
     const completedButton = document.createElement("button");
     completedButton.innerHTML = '<i class="fas fa-check-circle"></i>';
@@ -36,60 +43,48 @@ function createTodoElement(todoText) {
     trashButton.innerHTML = '<i class="fas fa-trash"></i>';
     trashButton.classList.add("trash-btn");
     todoDiv.appendChild(trashButton);
-    
-    
 
     todoList.appendChild(todoDiv);
     todoInput.value = "";
 
-    editButton.addEventListener("click", () => {
-        editTodo(newTodo);
+    editButton.addEventListener("click", (e) => {
+        todoInput.value = item.todo;
+        todoInput.setAttribute("data-id", item._id);
     });
 }
 
 async function addTodoToServer(todoText) {
     try {
-        const response = await fetch('http://localhost:3000/addTodo', {
-            method: 'POST',
+        const todoId = todoInput.getAttribute("data-id");
+        let url = 'http://localhost:3000/addTodo';
+        if (todoId) url += `/${todoId}`;
+        const method = todoId ? 'PUT' : "POST"
+        const response = await fetch(url, {
+            method: method,
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ todo: todoText }),
+
         });
 
         if (response.ok) {
-            // Se a adição for bem-sucedida, chame a função getTodos para atualizar a lista na tela.
-            await getTodos(); // Aguarde a conclusão da solicitação getTodos
-            createTodoElement(todoText);
+            const item = { _id: todoId, todo: todoText }
+            if (todoId) removeLocalTodos(item);
+            createTodoElement(item);
         } else {
             console.error('Falha ao adicionar a tarefa');
         }
+
+        todoInput.removeAttribute('data-id');
     } catch (error) {
         console.error(error);
     }
 }
 
-
-function deleteCheck(e) {
-    const item = e.target;
-
-    if (item.classList[0] === "trash-btn") {
-        const todo = item.parentElement;
-        const todoId = todo.getAttribute("data-id"); // Adicione um atributo de dados (data-id) para identificar a tarefa
-
-        deleteTodoOnServer(todoId);
-
-        todo.classList.add("slide");
-        removeLocalTodos(todo);
-        todo.addEventListener("transitionend", function () {
-            todo.remove();
-        });
-    }
-}
-
-async function deleteTodoOnServer(id) {
+async function deleteTodoOnServer(todoId) {
     try {
-        const response = await fetch(`http://localhost:3000/deleteTodo/${id}`, {
+        const response = await fetch(`http://localhost:3000/delete-todo/${todoId}`, {
             method: 'DELETE',
         });
 
@@ -103,8 +98,30 @@ async function deleteTodoOnServer(id) {
     }
 }
 
+function deleteCheck(e) {
+    e.preventDefault();
+    const item = e.target;
+    if (item.classList.contains("trash-btn")) {
+        const todo = item.parentElement;
+        const todoId = todo.getAttribute("data-id"); // Obtenha o ID da tarefa a partir do atributo data-id
+        console.log(todoId);
+        if (todoId) {
+            // Envie uma solicitação DELETE ao servidor
+            deleteTodoOnServer(todoId);
+
+
+            // Remova a tarefa da interface do usuário
+            todo.classList.add("slide");
+            todo.addEventListener("transitionend", () => {
+                todo.remove();
+            });
+        }
+    }
+}
+
 
 function filterTodo(e) {
+    e.preventDefault();
     const todos = todoList.childNodes;
     todos.forEach(function (todo) {
         switch (e.target.value) {
@@ -145,8 +162,9 @@ async function getLocalTodos() {
         const response = await fetch('http://localhost:3000/getTodos');
         if (response.ok) {
             const todos = await response.json();
+            console.log(todos)
             todos.forEach((todo) => {
-                createTodoElement(todo.todo);
+                createTodoElement(todo);
             });
         } else {
             console.error('Erro ao buscar as tarefas do servidor');
@@ -156,10 +174,11 @@ async function getLocalTodos() {
     }
 }
 
-async function removeLocalTodos(todoElement) {
-    // Você também pode remover essa função se preferir não armazenar dados localmente no navegador.
-}
-
-async function updateLocalTodos(oldTodo, newTodo) {
-    // Você também pode remover essa função se preferir não armazenar dados localmente no navegador.
+async function removeLocalTodos(todo) {
+    todoList.childNodes.forEach((item) => {
+        if (item.getAttribute("data-id") === todo._id) {
+            item.remove();
+            return;
+        }
+    });
 }

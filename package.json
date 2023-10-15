@@ -2,9 +2,10 @@
   "name": "panelinha-project-node",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon public/server/server.js"
   },
   "author": "",
   "license": "ISC",
@@ -14,5 +15,8 @@
     "mongodb": "^6.1.0",
     "mongoose": "^7.6.1",
     "socket.io": "^4.7.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   }
 }
