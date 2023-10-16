@@ -15,6 +15,8 @@ todoButton.addEventListener("click", (e) => {
         addTodoToServer(todoText);
     }
 });
+
+
 todoList.addEventListener("click", deleteCheck);
 filterOption.addEventListener("change", filterTodo);
 
@@ -34,11 +36,25 @@ function createTodoElement(item) {
     completedButton.classList.add("complete-btn");
     todoDiv.appendChild(completedButton);
 
+    if (item.completed) {
+        todoDiv.classList.add("completed");
+    }
+
+    completedButton.addEventListener("click", () => {
+        todoDiv.classList.toggle("completed");
+        updateTodoOnServer(item._id, !item.completed);
+        item.completed = !item.completed; 
+
+        if (item.completed) {
+            saveLocalCompletedTodo(item);
+        }
+    });
+
     const editButton = document.createElement("button");
     editButton.innerHTML = '<i class="fas fa-edit"></i>';
     editButton.classList.add("edit-btn");
     todoDiv.appendChild(editButton);
-
+    
     const trashButton = document.createElement("button");
     trashButton.innerHTML = '<i class="fas fa-trash"></i>';
     trashButton.classList.add("trash-btn");
@@ -51,25 +67,38 @@ function createTodoElement(item) {
         todoInput.value = item.todo;
         todoInput.setAttribute("data-id", item._id);
     });
+
+    todoList.appendChild(todoDiv);
+    todoInput.value = "";
+
+// Adicione o evento de edição novamente
+editButton.addEventListener("click", (e) => {
+    todoInput.value = item.todo;
+    todoInput.setAttribute("data-id", item._id);
+});
 }
 
 async function addTodoToServer(todoText) {
     try {
         const todoId = todoInput.getAttribute("data-id");
         let url = 'http://localhost:3000/addTodo';
-        if (todoId) url += `/${todoId}`;
-        const method = todoId ? 'PUT' : "POST"
+
+        if (todoId) {
+            // Se todoId for válido (não é null), adicione o / e o todoId ao URL
+            url += `/${todoId}`;
+        }
+
+        const method = todoId ? 'PUT' : 'POST';
         const response = await fetch(url, {
             method: method,
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({ todo: todoText }),
-
         });
 
         if (response.ok) {
-            const item = { _id: todoId, todo: todoText }
+            const item = { _id: todoId, todo: todoText };
             if (todoId) removeLocalTodos(item);
             createTodoElement(item);
         } else {
@@ -103,18 +132,19 @@ function deleteCheck(e) {
     const item = e.target;
     if (item.classList.contains("trash-btn")) {
         const todo = item.parentElement;
-        const todoId = todo.getAttribute("data-id"); // Obtenha o ID da tarefa a partir do atributo data-id
+        const todoId = todo.getAttribute("data-id");
         console.log(todoId);
         if (todoId) {
-            // Envie uma solicitação DELETE ao servidor
-            deleteTodoOnServer(todoId);
-
-
-            // Remova a tarefa da interface do usuário
-            todo.classList.add("slide");
-            todo.addEventListener("transitionend", () => {
-                todo.remove();
-            });
+            deleteTodoOnServer(todoId)
+                .then(() => {
+                    todo.classList.add("slide");
+                    todo.addEventListener("transitionend", () => {
+                        todo.remove();
+                    });
+                })
+                .catch((error) => {
+                    console.error('Falha ao remover a tarefa no servidor', error);
+                });
         }
     }
 }
@@ -181,4 +211,35 @@ async function removeLocalTodos(todo) {
             return;
         }
     });
+}
+
+async function updateTodoOnServer(todoId, completed) {
+    try {
+        const response = await fetch(`http://localhost:3000/update-todo/${todoId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ completed: completed }),
+        });
+
+        if (response.ok) {
+            console.log('Tarefa atualizada no servidor');
+        } else {
+            console.error('Falha ao atualizar a tarefa no servidor');
+        }
+    } catch (error) {
+        console.error(error);
+    }
+};
+
+function saveLocalCompletedTodo(item) {
+    let completedTodos;
+    if (localStorage.getItem("completedTodos") === null) {
+        completedTodos = [];
+    } else {
+        completedTodos = JSON.parse(localStorage.getItem("completedTodos"));
+    }
+    completedTodos.push(item);
+    localStorage.setItem("completedTodos", JSON.stringify(completedTodos));
 }

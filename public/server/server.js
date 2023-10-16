@@ -21,8 +21,9 @@ app.post('/addTodo', async (req, res) => {
   try {
     const todo = req.body.todo;
 
-    // Adicione o campo "completed" com o valor inicial "false" ao objeto que você vai inserir no banco de dados
+    // Crie um novo objeto com um identificador exclusivo (new ObjectId()) e o campo "completed" definido como "false"
     const newTodo = {
+      _id: new ObjectId(), // Identificador exclusivo
       todo: todo,
       completed: false
     };
@@ -35,6 +36,7 @@ app.post('/addTodo', async (req, res) => {
     res.status(500).json({ error: 'Erro ao adicionar a tarefa' });
   }
 });
+
 
 app.get('/getTodos', async (req, res) => {
   try {
@@ -89,6 +91,33 @@ if (result.modifiedCount === 1) {
   console.error(err);
   res.status(500).json({ error: 'Erro ao remover a tarefa' });
 }
+});
+
+app.put('/update-todo/:id', async (req, res) => {
+  const todoId = req.params.id;
+  console.log("ID da tarefa a ser atualizada:", todoId);
+
+  try {
+    const collection = db.collection("tasks");
+
+    const result = await collection.updateOne(
+      { _id: new ObjectId(todoId) }, // Use o identificador exclusivo
+      {
+        $set: {
+          completed: true // Define o campo "completed" como true
+        }
+      }
+    );
+
+    if (result.modifiedCount > 0) {
+      res.status(200).json({ message: 'Tarefa atualizada com sucesso' });
+    } else {
+      res.status(404).json({ error: 'Tarefa não encontrada' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao atualizar a tarefa' });
+  }
 });
 
 
