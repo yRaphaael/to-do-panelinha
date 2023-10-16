@@ -20,8 +20,15 @@ app.use(express.json());
 app.post('/addTodo', async (req, res) => {
   try {
     const todo = req.body.todo;
+
+    // Adicione o campo "completed" com o valor inicial "false" ao objeto que você vai inserir no banco de dados
+    const newTodo = {
+      todo: todo,
+      completed: false
+    };
+
     const collection = db.collection("tasks");
-    const result = await collection.insertOne({ todo });
+    const result = await collection.insertOne(newTodo);
     res.status(200).json({ message: 'Tarefa adicionada com sucesso' });
   } catch (err) {
     console.error(err);
